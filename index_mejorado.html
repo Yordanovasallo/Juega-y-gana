@@ -48,8 +48,16 @@ transition:.25s;
 }
 </style>
 
+
+<style id="chip-rain-style">
+.chip-rain{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:9999;display:none}
+.chip{position:absolute;top:-60px;font-size:28px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+</style>
+
 </head>
 <body>
+<div id="chipRain" class="chip-rain"></div>
 <div class="wallet"><span>🪙</span> <b id="topBalance">0</b> fichas</div>
 <div class="wrap">
 <div class="brand"><h1>♛ CASINO EL DORADO 🪙</h1><p>Casino el Dorado</p></div>
@@ -109,8 +117,8 @@ function id(){return "U"+Date.now().toString(36).toUpperCase()+Math.random().toS
 function showMsg(t){let e=document.getElementById("msg");e.textContent=t;e.classList.remove("hidden")}
 function register(){let n=rName.value.trim(),p=rPass.value;if(!n||!p)return showMsg("Completa usuario y contraseña.");if(n.toLowerCase()=="admin")return showMsg("Ese nombre está reservado.");if(users.some(u=>u.name.toLowerCase()==n.toLowerCase()))return showMsg("Ese usuario ya existe.");let u={id:id(),name:n,pass:p,balance:0,avatar:""};users.push(u);save();current=u;enter();showMsg("Cuenta creada correctamente.")}
 function login(){let n=liUser.value.trim(),p=liPass.value;if(n==="admin"&&p==="Yordano43503622@"){current={admin:true,name:"admin",id:"ADMIN"};enter();return}let u=users.find(x=>x.name.toLowerCase()==n.toLowerCase()&&x.pass===p);if(!u)return showMsg("Usuario o contraseña incorrectos.");current=u;enter()}
-function enter(){auth.classList.add("hidden");app.classList.remove("hidden");profileMenu.classList.add("hidden");if(current.admin){welcome.textContent="Administrador";uid.textContent="ADMIN";avatar.src=defaultAvatar();admin.classList.remove("hidden")}else{welcome.textContent=current.name;uid.textContent=current.id;balance.textContent=current.balance;topBalance.textContent=current.balance;avatar.src=current.avatar||defaultAvatar();admin.classList.add("hidden")};renderAdmin();if(!document.getElementById("rouletteGame").classList.contains("hidden")){drawRoulette();renderRouletteParticipants();updateRouletteTimer()}}
-function logout(){current=null;app.classList.add("hidden");auth.classList.remove("hidden");liPass.value="";showMsg("Sesión cerrada.")}
+function enter(){startPortalRain();auth.classList.add("hidden");app.classList.remove("hidden");profileMenu.classList.add("hidden");if(current.admin){welcome.textContent="Administrador";uid.textContent="ADMIN";avatar.src=defaultAvatar();admin.classList.remove("hidden")}else{welcome.textContent=current.name;uid.textContent=current.id;balance.textContent=current.balance;topBalance.textContent=current.balance;avatar.src=current.avatar||defaultAvatar();admin.classList.add("hidden")};renderAdmin();if(!document.getElementById("rouletteGame").classList.contains("hidden")){drawRoulette();renderRouletteParticipants();updateRouletteTimer()}}
+function logout(){stopPortalRain();current=null;app.classList.add("hidden");auth.classList.remove("hidden");liPass.value="";showMsg("Sesión cerrada.")}
 function toggleProfile(){profileMenu.classList.toggle("hidden")}
 function defaultAvatar(){return "data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" rx="50" fill="#263552"/><text x="50" y="62" text-anchor="middle" font-size="45" fill="#f5c451">♛</text></svg>`)}
 function changePassword(){let p=prompt("Nueva contraseña:");if(p){current.pass=p;users=users.map(u=>u.id===current.id?current:u);save();alert("Contraseña cambiada.")}}
@@ -120,7 +128,7 @@ function recharge(){window.open(WA+"?text="+encodeURIComponent("Hola, quiero sol
 function adminAdjust(sign){let to=users.find(u=>u.id===adminTarget.value),a=Number(adminAmount.value);if(!to||!Number.isFinite(a)||a<=0)return alert("Selecciona un usuario y una cantidad válida.");if(sign<0&&to.balance<a)return alert("El usuario no tiene suficientes fichas.");to.balance+=sign*a;ledger.unshift({date:new Date().toLocaleString(),user:to.name,type:sign>0?"Recarga":"Retiro",amount:sign*a,detail:"Ajuste del administrador"});save();adminAmount.value="";renderAdmin();if(current.id===to.id)balance.textContent=to.balance;topBalance.textContent=to.balance}
 function openSlot(){slotGame.classList.remove("hidden");mainGames.classList.add("hidden");slotResult.textContent="Selecciona tu apuesta y gira.";window.scrollTo(0,0)}
 function closeSlot(){slotGame.classList.add("hidden");mainGames.classList.remove("hidden")}
-function spinSlot(){if(current.admin)return alert("La cuenta de administración no puede jugar.");let bet=Number(slotBet.value);if(!Number.isInteger(bet)||bet<=0)return alert("La apuesta debe ser un número entero mayor que 0.");if(bet>current.balance)return alert("No tienes suficientes fichas.");const symbols=["🍒","🍋","🔔","⭐","7️⃣"],reelEls=[...document.querySelectorAll(".reel")],btn=spinBtn;btn.disabled=true;btn.textContent="⏳ GIRANDO...";reelEls.forEach(e=>e.classList.add("spin"));const final=symbols.map(()=>symbols[Math.floor(Math.random()*symbols.length)]);setTimeout(()=>{reelEls.forEach((e,i)=>{e.classList.remove("spin");e.textContent=final[i]});let payout=0,detail="";if(final[0]===final[1]&&final[1]===final[2]){payout=bet*5;detail="Tres símbolos iguales: premio x5"}else if(final[0]===final[1]||final[1]===final[2]||final[0]===final[2]){payout=bet*2;detail="Dos símbolos iguales: premio x2"}else detail="Sin premio";current.balance=current.balance-bet+payout;users=users.map(u=>u.id===current.id?current:u);ledger.unshift({date:new Date().toLocaleString(),user:current.name,type:"Tragamonedas",amount:payout-bet,detail:`Apuesta ${bet}. Premio ${payout}. ${detail}`});save();enter();slotGame.classList.remove("hidden");mainGames.classList.add("hidden");slotResult.textContent=payout?`🎉 Ganaste ${payout} fichas. Resultado neto: ${payout-bet}.`:`😕 No hubo premio. Resultado: -${bet} fichas.`;btn.disabled=false;btn.textContent="🎰 GIRAR"},900)}
+function spinSlot(){if(current.admin)return alert("La cuenta de administración no puede jugar.");let bet=Number(slotBet.value);if(!Number.isInteger(bet)||bet<=0)return alert("La apuesta debe ser un número entero mayor que 0.");if(bet>current.balance)return alert("No tienes suficientes fichas.");const symbols=["🍒","🍋","🔔","⭐","7️⃣"],reelEls=[...document.querySelectorAll(".reel")],btn=spinBtn;btn.disabled=true;btn.textContent="⏳ GIRANDO...";reelEls.forEach(e=>e.classList.add("spin"));const final=symbols.map(()=>symbols[Math.floor(Math.random()*symbols.length)]);setTimeout(()=>{reelEls.forEach((e,i)=>{e.classList.remove("spin");e.textContent=final[i]});let payout=0,detail="";if(final[0]===final[1]&&final[1]===final[2]){payout=bet*5;detail="Tres símbolos iguales: premio x5"}else if(final[0]===final[1]||final[1]===final[2]||final[0]===final[2]){payout=bet*2;detail="Dos símbolos iguales: premio x2"}else detail="Sin premio";current.balance=current.balance-bet+payout;users=users.map(u=>u.id===current.id?current:u);ledger.unshift({date:new Date().toLocaleString(),user:current.name,type:"Tragamonedas",amount:payout-bet,detail:`Apuesta ${bet}. Premio ${payout}. ${detail}`});save();enter();slotGame.classList.remove("hidden");mainGames.classList.add("hidden");if(payout){triggerWinRain();} slotResult.textContent=payout?`🎉 Ganaste ${payout} fichas. Resultado neto: ${payout-bet}.`:`😕 No hubo premio. Resultado: -${bet} fichas.`;btn.disabled=false;btn.textContent="🎰 GIRAR"},900)}
 
 function ensureRoulette(){let now=Date.now();if(!roulette||!roulette.start||now>=roulette.end){roulette={start:now,end:now+ROULETTE_DURATION,participants:[],finished:false};saveRoulette()}drawRoulette();renderRouletteParticipants();updateRouletteTimer()}
 function openRoulette(){rouletteGame.classList.remove("hidden");mainGames.classList.add("hidden");ensureRoulette();window.scrollTo(0,0)}
@@ -131,7 +139,7 @@ function renderRouletteParticipants(){const box=document.getElementById("roulett
 function updateRouletteTimer(){if(rouletteTimerInterval)clearInterval(rouletteTimerInterval);const tick=()=>{if(!roulette)return;let rem=roulette.end-Date.now();if(rem<=0){clearInterval(rouletteTimerInterval);finishRoulette();return}let s=Math.floor(rem/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;rouletteTimer.textContent=`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;renderRouletteParticipants()};tick();rouletteTimerInterval=setInterval(tick,1000)}
 function finishRoulette(){if(!roulette||roulette.finished)return;roulette.finished=true;const ps=roulette.participants||[];if(!ps.length){rouletteMessage.textContent="No hubo participantes en esta ronda.";saveRoulette();setTimeout(startNewRoulette,3000);return}const wi=Math.floor(Math.random()*ps.length);spinWheelToWinner(wi,ps.length,()=>announceWinner(ps[wi]))}
 function spinWheelToWinner(wi,count,callback){const canvas=document.getElementById("rouletteCanvas");if(!canvas)return callback();const slice=360/count,target=-(wi*slice+slice/2),extra=360*6,finalRotation=rouletteRotation+extra+target,startRotation=rouletteRotation,duration=5000,startTime=performance.now();function animate(now){const progress=Math.min(1,(now-startTime)/duration),eased=1-Math.pow(1-progress,3);rouletteRotation=startRotation+(finalRotation-startRotation)*eased;canvas.style.transform=`rotate(${rouletteRotation}deg)`;if(progress<1)requestAnimationFrame(animate);else{rouletteRotation=finalRotation;callback()}}requestAnimationFrame(animate)}
-function announceWinner(winner){const total=roulette.participants.length*ROULETTE_COST,winnerPrize=Math.floor(total*.90),adminPart=Math.floor(total*.05),jackpotPart=total-winnerPrize-adminPart,w=users.find(u=>u.id===winner.id);if(w){w.balance+=winnerPrize;users=users.map(u=>u.id===w.id?w:u)}ledger.unshift({date:new Date().toLocaleString(),user:winner.name,type:"Ruleta - Premio",amount:winnerPrize,detail:`Ganador de la ronda. Participantes: ${roulette.participants.length}. Premio: ${winnerPrize} fichas.`});ledger.unshift({date:new Date().toLocaleString(),user:"SISTEMA",type:"Ruleta",amount:0,detail:`Fondo administración: ${adminPart} fichas. Fondo acumulado: ${jackpotPart} fichas.`});save();if(current&&!current.admin){const fresh=users.find(u=>u.id===current.id);if(fresh){current=fresh;enter()}}rouletteMessage.innerHTML=`🏆 <strong>¡GANADOR!</strong><br>🎉 ${escapeHtml(winner.name)}<br>🪙 Premio: ${winnerPrize} fichas`;setTimeout(startNewRoulette,7000)}
+function announceWinner(winner){const total=roulette.participants.length*ROULETTE_COST,winnerPrize=Math.floor(total*.90),adminPart=Math.floor(total*.05),jackpotPart=total-winnerPrize-adminPart,w=users.find(u=>u.id===winner.id);if(w){w.balance+=winnerPrize;users=users.map(u=>u.id===w.id?w:u)}ledger.unshift({date:new Date().toLocaleString(),user:winner.name,type:"Ruleta - Premio",amount:winnerPrize,detail:`Ganador de la ronda. Participantes: ${roulette.participants.length}. Premio: ${winnerPrize} fichas.`});ledger.unshift({date:new Date().toLocaleString(),user:"SISTEMA",type:"Ruleta",amount:0,detail:`Fondo administración: ${adminPart} fichas. Fondo acumulado: ${jackpotPart} fichas.`});save();if(current&&!current.admin){const fresh=users.find(u=>u.id===current.id);if(fresh){current=fresh;enter()}}triggerWinRain();rouletteMessage.innerHTML=`🏆 <strong>¡GANADOR!</strong><br>🎉 ${escapeHtml(winner.name)}<br>🪙 Premio: ${winnerPrize} fichas`;setTimeout(startNewRoulette,7000)}
 function startNewRoulette(){roulette={start:Date.now(),end:Date.now()+ROULETTE_DURATION,participants:[],finished:false};rouletteRotation=0;saveRoulette();const canvas=document.getElementById("rouletteCanvas");if(canvas)canvas.style.transform="rotate(0deg)";drawRoulette();renderRouletteParticipants();if(document.getElementById("rouletteMessage"))rouletteMessage.textContent="🎡 Nueva ronda abierta. ¡Participa con 50 fichas!";updateRouletteTimer()}
 function escapeHtml(v){return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
 function renderAdmin(){if(!current?.admin)return;adminUsers.textContent=users.length;adminBalance.textContent=users.reduce((s,u)=>s+u.balance,0);adminTarget.innerHTML=users.map(u=>`<option value="${u.id}">${escapeHtml(u.name)} — ${u.id} — ${u.balance} fichas</option>`).join("");ledger.innerHTML=ledgerDataHtml()}
@@ -140,6 +148,41 @@ loginTab.onclick=()=>{loginBox.classList.remove("hidden");regBox.classList.add("
 regTab.onclick=()=>{regBox.classList.remove("hidden");loginBox.classList.add("hidden");regTab.className="primary";loginTab.className="ghost"}
 
 window.addEventListener("load",()=>{if(roulette&&Date.now()>=roulette.end){roulette=null;saveRoulette()}});
+
+function startPortalRain(){
+ const box=document.getElementById('chipRain');
+ if(!box) return;
+ box.style.display='block';
+ box.innerHTML='';
+ for(let i=0;i<20;i++){
+   const c=document.createElement('div');
+   c.className='chip';
+   c.textContent='🪙';
+   c.style.left=Math.random()*100+'vw';
+   c.style.animationDuration=(4+Math.random()*4)+'s';
+   box.appendChild(c);
+ }
+}
+function stopPortalRain(){
+ const box=document.getElementById('chipRain');
+ if(box){box.style.display='none';box.innerHTML='';}
+}
+function triggerWinRain(){
+ const box=document.getElementById('chipRain');
+ if(!box) return;
+ box.style.display='block';
+ box.innerHTML='';
+ for(let i=0;i<80;i++){
+   const c=document.createElement('div');
+   c.className='chip';
+   c.textContent='🪙';
+   c.style.left=Math.random()*100+'vw';
+   c.style.animationDuration=(2+Math.random()*2)+'s';
+   box.appendChild(c);
+ }
+ setTimeout(()=>{ if(current) startPortalRain(); else stopPortalRain(); },5000);
+}
+
 </script>
 </body>
 </html>
