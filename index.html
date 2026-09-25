@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Casino — Portal de usuarios (Demo)</title>
+<style>
+:root{--bg:#090d18;--card:#121a2b;--card2:#0e1524;--gold:#f5c451;--text:#f5f7fb;--muted:#9aa7bd;--green:#37d39a;--red:#ff6b7a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1b2742 0,#090d18 48%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+.wallet{position:sticky;top:0;z-index:50;background:#0b1220ee;backdrop-filter:blur(10px);border-bottom:1px solid #2b3b59;padding:10px 18px;text-align:right;color:#f5c451;font-size:16px}.wrap{max-width:1100px;margin:auto;padding:22px}.brand{text-align:center;margin:15px 0 22px}.brand h1{margin:0;color:var(--gold);letter-spacing:1px}.brand p{color:var(--muted);margin:5px}
+.card{background:rgba(18,26,43,.94);border:1px solid #263552;border-radius:18px;padding:20px;box-shadow:0 12px 40px #0006;margin-bottom:16px}.tabs{display:flex;gap:8px;margin-bottom:14px}.tabs button{flex:1}.hidden{display:none!important}
+input,button,select{width:100%;padding:12px 14px;border-radius:11px;border:1px solid #334463;background:#0a1120;color:var(--text);margin:6px 0}button{cursor:pointer;font-weight:700}.primary{background:linear-gradient(135deg,#f5c451,#d89d22);color:#17120a;border:0}.ghost{background:#17223a}.danger{background:#4a1d29;border-color:#7a3040}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}.profile{display:flex;align-items:center;gap:12px;cursor:pointer}.avatar{width:54px;height:54px;border-radius:50%;object-fit:cover;background:#263552;border:2px solid var(--gold)}.balance{font-size:28px;color:var(--gold);font-weight:800}.muted{color:var(--muted)}.menu{display:grid;gap:7px;margin-top:12px}.menu button{text-align:left}.games{min-height:270px;display:grid;place-items:center;border:1px dashed #3b4d6e;border-radius:16px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px;border-bottom:1px solid #263552;text-align:left}th{color:var(--gold)}.ok{color:var(--green)}.bad{color:var(--red)}
+.reel{display:grid;place-items:center;width:82px;height:82px;background:#090d18;border:2px solid #6b5420;border-radius:14px;font-size:48px;box-shadow:inset 0 0 18px #000,0 5px 20px #0008}.spin{animation:spin .55s linear infinite}@keyframes spin{0%{transform:translateY(-4px)}50%{transform:translateY(4px)}100%{transform:translateY(-4px)}}.notice{padding:11px 13px;border-radius:10px;background:#17223a;color:#cbd5e8;font-size:13px}
+#rouletteCanvas{transition:transform 5s cubic-bezier(.12,.7,.15,1);transform-origin:50% 50%}
+.roulette-wrap{position:relative;width:min(88vw,430px);height:min(88vw,430px);margin:24px auto;display:flex;align-items:center;justify-content:center}.roulette-wrap canvas{display:block;width:100%;height:100%;max-width:430px;max-height:430px;margin:0 auto;border-radius:50%;box-shadow:0 0 0 8px #6b5420,0 0 35px #000;background:#111}.pointer{position:absolute;top:-14px;left:50%;transform:translateX(-50%);z-index:5;font-size:38px;filter:drop-shadow(0 3px 4px #000)}.roulette-center{position:absolute;width:70px;height:70px;border-radius:50%;background:#111827;border:5px solid #f5c451;display:grid;place-items:center;font-size:25px;box-shadow:0 0 15px #000;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}
+.participant{display:flex;align-items:center;gap:10px;padding:10px;background:#0a1120;border:1px solid #263552;border-radius:10px}.num{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#263552;color:#f5c451;font-weight:800}
+</style>
+</head>
+<body>
+<div class="wallet"><span>🪙</span> <b id="topBalance">0</b> fichas</div>
+<div class="wrap">
+<div class="brand"><h1>♛ CASINO EL DORADO 🪙</h1><p>Casino el Dorado</p></div>
+
+<section id="auth" class="card">
+<div class="tabs"><button id="loginTab" class="primary">Entrar</button><button id="regTab" class="ghost">Registrarse</button></div>
+<div id="loginBox"><input id="liUser" placeholder="Usuario"><input id="liPass" type="password" placeholder="Contraseña"><button class="primary" onclick="login()">Entrar al casino</button></div>
+<div id="regBox" class="hidden"><input id="rName" placeholder="Nombre de usuario"><input id="rPass" type="password" placeholder="Contraseña"><button class="primary" onclick="register()">Crear cuenta</button></div>
+<div id="msg" class="notice hidden"></div>
+</section>
+
+<section id="app" class="hidden">
+<div class="card"><div class="profile" onclick="toggleProfile()"><img id="avatar" class="avatar" alt="avatar"><div><strong id="welcome"></strong><div class="muted">ID: <span id="uid"></span></div></div><div style="margin-left:auto">⌄</div></div>
+<div id="profileMenu" class="menu hidden"><button class="ghost" onclick="changePassword()">🔐 Cambiar contraseña</button><button class="ghost" onclick="sendFichas()">🪙 Enviar fichas a otro usuario</button><button class="ghost" onclick="uploadAvatar()">🖼️ Poner imagen de la galería</button><button class="danger" onclick="logout()">↪ Cerrar sesión</button></div></div>
+
+<div id="mainGames" class="grid">
+<div class="card"><div class="muted">Saldo disponible</div><div class="balance"><span id="balance">0</span> fichas</div><button class="primary" onclick="recharge()">＋ Recargar saldo</button><div class="muted" style="font-size:12px;margin-top:8px">La recarga se solicita al administrador por WhatsApp.</div></div>
+<div class="card"><h3 style="margin-top:0">Juegos</h3><div class="games" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:18px">
+<button class="ghost" style="height:190px;font-size:54px" onclick="openRoulette()">🎡<div style="font-size:17px;margin-top:8px">Ruleta<br>50 fichas</div></button>
+<button class="ghost" style="height:190px;font-size:54px" onclick="openSlot()">🎰<div style="font-size:17px;margin-top:8px">Tragamonedas</div></button>
+</div></div></div>
+
+<section id="rouletteGame" class="card hidden">
+<div style="display:flex;align-items:center;gap:10px"><button class="ghost" style="width:auto" onclick="closeRoulette()">← Volver</button><h2 style="margin:0">🎡 Ruleta El Dorado</h2></div>
+<div class="card" style="text-align:center;background:linear-gradient(180deg,#17152a,#0b1220);border:1px solid #6b5420">
+<div class="muted">CADA PARTICIPACIÓN</div><div style="font-size:30px;font-weight:800;color:#f5c451">🪙 50 FICHAS</div>
+<div style="margin:18px 0"><div class="muted">Tiempo restante</div><div id="rouletteTimer" style="font-size:32px;font-weight:800;color:#f5c451">01:00:00</div></div>
+<div class="roulette-wrap"><canvas id="rouletteCanvas" width="430" height="430"></canvas><div class="pointer">▼</div><div class="roulette-center">♛</div></div>
+<button id="joinRouletteBtn" class="primary" onclick="joinRoulette()">🎟️ PARTICIPAR · 50 FICHAS</button>
+<div id="rouletteMessage" class="notice" style="margin-top:12px">La ronda está abierta. ¡Participa con 50 fichas!</div>
+</div>
+<div class="card"><h3 style="margin-top:0">👥 Participantes</h3><div id="rouletteParticipants" style="display:grid;gap:8px"></div></div>
+</section>
+
+<section id="slotGame" class="card hidden"><div style="display:flex;align-items:center;gap:10px"><button class="ghost" style="width:auto" onclick="closeSlot()">← Volver</button><h2 style="margin:0">🎰 Tragamonedas</h2></div>
+<div class="card" style="text-align:center;background:linear-gradient(180deg,#17152a,#0b1220);border:1px solid #6b5420"><div style="font-size:13px;color:#9aa7bd">PREMIO MÁXIMO · 5× LA APUESTA</div>
+<div id="reels" style="display:flex;justify-content:center;gap:8px;margin:24px 0"><span class="reel">🍒</span><span class="reel">🍋</span><span class="reel">🔔</span></div><div class="muted">Elige tu apuesta</div><div style="max-width:300px;margin:auto"><input id="slotBet" type="number" min="1" value="10" placeholder="Fichas"><button id="spinBtn" class="primary" onclick="spinSlot()">🎰 GIRAR</button></div><div id="slotResult" class="notice" style="margin-top:12px">¡Suerte! Tres iguales pagan 5×; dos iguales pagan 2×.</div></div>
+<div class="notice">💡 Tu saldo permanece visible arriba mientras juegas.</div></section>
+
+<section id="admin" class="card hidden"><h2>Panel de administración</h2><div class="grid"><div><div class="muted">Usuarios</div><div id="adminUsers" class="balance">0</div></div><div><div class="muted">Fichas en circulación</div><div id="adminBalance" class="balance">0</div></div></div>
+<h3>Gestionar fichas</h3><select id="adminTarget"></select><input id="adminAmount" type="number" min="1" placeholder="Cantidad de fichas"><div class="grid"><button class="primary" onclick="adminAdjust(1)">＋ Sumar fichas</button><button class="danger" onclick="adminAdjust(-1)">− Restar fichas</button></div>
+<h3>Registro de movimientos</h3><div style="overflow:auto"><table><thead><tr><th>Fecha</th><th>Usuario</th><th>Tipo</th><th>Fichas</th><th>Detalle</th></tr></thead><tbody id="ledger"></tbody></table></div></section>
+</section></div>
+
+<script>
+const WA="https://wa.me/58097787";
+let users=JSON.parse(localStorage.getItem("casino_users")||"[]");
+let ledger=JSON.parse(localStorage.getItem("casino_ledger")||"[]");
+let current=null;
+const ROULETTE_COST=50, ROULETTE_DURATION=60*60*1000;
+let roulette=JSON.parse(localStorage.getItem("casino_roulette")||"null");
+let rouletteTimerInterval=null, rouletteRotation=0;
+
+function save(){localStorage.setItem("casino_users",JSON.stringify(users));localStorage.setItem("casino_ledger",JSON.stringify(ledger))}
+function saveRoulette(){localStorage.setItem("casino_roulette",JSON.stringify(roulette))}
+function id(){return "U"+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase()}
+function showMsg(t){let e=document.getElementById("msg");e.textContent=t;e.classList.remove("hidden")}
+function register(){let n=rName.value.trim(),p=rPass.value;if(!n||!p)return showMsg("Completa usuario y contraseña.");if(n.toLowerCase()=="admin")return showMsg("Ese nombre está reservado.");if(users.some(u=>u.name.toLowerCase()==n.toLowerCase()))return showMsg("Ese usuario ya existe.");let u={id:id(),name:n,pass:p,balance:0,avatar:""};users.push(u);save();current=u;enter();showMsg("Cuenta creada correctamente.")}
+function login(){let n=liUser.value.trim(),p=liPass.value;if(n==="admin"&&p==="Yordano43503622@"){current={admin:true,name:"admin",id:"ADMIN"};enter();return}let u=users.find(x=>x.name.toLowerCase()==n.toLowerCase()&&x.pass===p);if(!u)return showMsg("Usuario o contraseña incorrectos.");current=u;enter()}
+function enter(){auth.classList.add("hidden");app.classList.remove("hidden");profileMenu.classList.add("hidden");if(current.admin){welcome.textContent="Administrador";uid.textContent="ADMIN";avatar.src=defaultAvatar();admin.classList.remove("hidden")}else{welcome.textContent=current.name;uid.textContent=current.id;balance.textContent=current.balance;topBalance.textContent=current.balance;avatar.src=current.avatar||defaultAvatar();admin.classList.add("hidden")};renderAdmin();if(!document.getElementById("rouletteGame").classList.contains("hidden")){drawRoulette();renderRouletteParticipants();updateRouletteTimer()}}
+function logout(){current=null;app.classList.add("hidden");auth.classList.remove("hidden");liPass.value="";showMsg("Sesión cerrada.")}
+function toggleProfile(){profileMenu.classList.toggle("hidden")}
+function defaultAvatar(){return "data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" rx="50" fill="#263552"/><text x="50" y="62" text-anchor="middle" font-size="45" fill="#f5c451">♛</text></svg>`)}
+function changePassword(){let p=prompt("Nueva contraseña:");if(p){current.pass=p;users=users.map(u=>u.id===current.id?current:u);save();alert("Contraseña cambiada.")}}
+function sendFichas(){let target=prompt("ID irrepetible del usuario destinatario:"),amount=Number(prompt("Cantidad de fichas:")),to=users.find(u=>u.id===target);if(!to||!Number.isFinite(amount)||amount<=0)return alert("Datos no válidos.");if(amount>current.balance)return alert("Saldo insuficiente.");current.balance-=amount;to.balance+=amount;ledger.unshift({date:new Date().toLocaleString(),user:current.name,type:"Transferencia",amount,detail:`Envío a ${to.name} (${to.id})`});save();enter();alert("Transferencia realizada.")}
+function uploadAvatar(){let input=document.createElement("input");input.type="file";input.accept="image/*";input.onchange=()=>{let f=input.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{current.avatar=r.result;users=users.map(u=>u.id===current.id?current:u);save();enter()};r.readAsDataURL(f)};input.click()}
+function recharge(){window.open(WA+"?text="+encodeURIComponent("Hola, quiero solicitar una recarga de fichas. Mi ID es "+current.id),"_blank")}
+function adminAdjust(sign){let to=users.find(u=>u.id===adminTarget.value),a=Number(adminAmount.value);if(!to||!Number.isFinite(a)||a<=0)return alert("Selecciona un usuario y una cantidad válida.");if(sign<0&&to.balance<a)return alert("El usuario no tiene suficientes fichas.");to.balance+=sign*a;ledger.unshift({date:new Date().toLocaleString(),user:to.name,type:sign>0?"Recarga":"Retiro",amount:sign*a,detail:"Ajuste del administrador"});save();adminAmount.value="";renderAdmin();if(current.id===to.id)balance.textContent=to.balance;topBalance.textContent=to.balance}
+function openSlot(){slotGame.classList.remove("hidden");mainGames.classList.add("hidden");slotResult.textContent="Selecciona tu apuesta y gira.";window.scrollTo(0,0)}
+function closeSlot(){slotGame.classList.add("hidden");mainGames.classList.remove("hidden")}
+function spinSlot(){if(current.admin)return alert("La cuenta de administración no puede jugar.");let bet=Number(slotBet.value);if(!Number.isInteger(bet)||bet<=0)return alert("La apuesta debe ser un número entero mayor que 0.");if(bet>current.balance)return alert("No tienes suficientes fichas.");const symbols=["🍒","🍋","🔔","⭐","7️⃣"],reelEls=[...document.querySelectorAll(".reel")],btn=spinBtn;btn.disabled=true;btn.textContent="⏳ GIRANDO...";reelEls.forEach(e=>e.classList.add("spin"));const final=symbols.map(()=>symbols[Math.floor(Math.random()*symbols.length)]);setTimeout(()=>{reelEls.forEach((e,i)=>{e.classList.remove("spin");e.textContent=final[i]});let payout=0,detail="";if(final[0]===final[1]&&final[1]===final[2]){payout=bet*5;detail="Tres símbolos iguales: premio x5"}else if(final[0]===final[1]||final[1]===final[2]||final[0]===final[2]){payout=bet*2;detail="Dos símbolos iguales: premio x2"}else detail="Sin premio";current.balance=current.balance-bet+payout;users=users.map(u=>u.id===current.id?current:u);ledger.unshift({date:new Date().toLocaleString(),user:current.name,type:"Tragamonedas",amount:payout-bet,detail:`Apuesta ${bet}. Premio ${payout}. ${detail}`});save();enter();slotGame.classList.remove("hidden");mainGames.classList.add("hidden");slotResult.textContent=payout?`🎉 Ganaste ${payout} fichas. Resultado neto: ${payout-bet}.`:`😕 No hubo premio. Resultado: -${bet} fichas.`;btn.disabled=false;btn.textContent="🎰 GIRAR"},900)}
+
+function ensureRoulette(){let now=Date.now();if(!roulette||!roulette.start||now>=roulette.end){roulette={start:now,end:now+ROULETTE_DURATION,participants:[],finished:false};saveRoulette()}drawRoulette();renderRouletteParticipants();updateRouletteTimer()}
+function openRoulette(){rouletteGame.classList.remove("hidden");mainGames.classList.add("hidden");ensureRoulette();window.scrollTo(0,0)}
+function closeRoulette(){rouletteGame.classList.add("hidden");mainGames.classList.remove("hidden");if(rouletteTimerInterval){clearInterval(rouletteTimerInterval);rouletteTimerInterval=null}}
+function joinRoulette(){if(!current||current.admin)return alert("La cuenta de administración no puede participar.");ensureRoulette();if(current.balance<ROULETTE_COST)return alert("No tienes suficientes fichas. Necesitas 50 fichas.");if(roulette.participants.some(p=>p.id===current.id))return alert("Ya estás participando en esta ronda.");current.balance-=ROULETTE_COST;users=users.map(u=>u.id===current.id?current:u);roulette.participants.push({id:current.id,name:current.name});ledger.unshift({date:new Date().toLocaleString(),user:current.name,type:"Ruleta",amount:-ROULETTE_COST,detail:"Participación en la ruleta"});save();saveRoulette();enter();drawRoulette();renderRouletteParticipants();rouletteMessage.textContent="🎡 ¡Ya estás dentro de la ruleta!";updateRouletteTimer()}
+function drawRoulette(){const canvas=document.getElementById("rouletteCanvas");if(!canvas)return;const ctx=canvas.getContext("2d"),size=canvas.width,cx=size/2,cy=size/2,radius=size/2-5;ctx.clearRect(0,0,size,size);const ps=roulette?.participants||[];if(!ps.length){ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.fillStyle="#171f32";ctx.fill();ctx.strokeStyle="#f5c451";ctx.lineWidth=4;ctx.stroke();ctx.fillStyle="#f5c451";ctx.font="bold 22px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("ESPERANDO",cx,cy-15);ctx.fillText("PARTICIPANTES",cx,cy+18);return}const slice=Math.PI*2/ps.length,colors=["#c0392b","#8e44ad","#2980b9","#16a085","#d35400","#2c3e50","#7f8c8d","#27ae60","#34495e","#9b59b6"];ps.forEach((p,i)=>{const start=-Math.PI/2+i*slice,end=start+slice;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,radius,start,end);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();ctx.strokeStyle="#f5c451";ctx.lineWidth=2;ctx.stroke();ctx.save();ctx.translate(cx,cy);ctx.rotate(start+slice/2);ctx.textAlign="right";ctx.textBaseline="middle";ctx.fillStyle="#fff";let fs=17;if(p.name.length>12)fs=13;if(p.name.length>18)fs=10;ctx.font=`bold ${fs}px system-ui`;let name=p.name.length>22?p.name.slice(0,21)+"…":p.name;ctx.shadowColor="#000";ctx.shadowBlur=4;ctx.fillText(name,radius-14,0);ctx.restore()});ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.strokeStyle="#f5c451";ctx.lineWidth=5;ctx.stroke()}
+function renderRouletteParticipants(){const box=document.getElementById("rouletteParticipants");if(!box)return;const ps=roulette?.participants||[];if(!ps.length){box.innerHTML='<div class="muted">No hay participantes todavía.</div>';return}box.innerHTML=ps.map((p,i)=>`<div class="participant"><div class="num">${i+1}</div><div><strong>${escapeHtml(p.name)}</strong><div class="muted" style="font-size:12px">🪙 50 fichas</div></div></div>`).join("")}
+function updateRouletteTimer(){if(rouletteTimerInterval)clearInterval(rouletteTimerInterval);const tick=()=>{if(!roulette)return;let rem=roulette.end-Date.now();if(rem<=0){clearInterval(rouletteTimerInterval);finishRoulette();return}let s=Math.floor(rem/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;rouletteTimer.textContent=`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;renderRouletteParticipants()};tick();rouletteTimerInterval=setInterval(tick,1000)}
+function finishRoulette(){if(!roulette||roulette.finished)return;roulette.finished=true;const ps=roulette.participants||[];if(!ps.length){rouletteMessage.textContent="No hubo participantes en esta ronda.";saveRoulette();setTimeout(startNewRoulette,3000);return}const wi=Math.floor(Math.random()*ps.length);spinWheelToWinner(wi,ps.length,()=>announceWinner(ps[wi]))}
+function spinWheelToWinner(wi,count,callback){const canvas=document.getElementById("rouletteCanvas");if(!canvas)return callback();const slice=360/count,target=-(wi*slice+slice/2),extra=360*6,finalRotation=rouletteRotation+extra+target,startRotation=rouletteRotation,duration=5000,startTime=performance.now();function animate(now){const progress=Math.min(1,(now-startTime)/duration),eased=1-Math.pow(1-progress,3);rouletteRotation=startRotation+(finalRotation-startRotation)*eased;canvas.style.transform=`rotate(${rouletteRotation}deg)`;if(progress<1)requestAnimationFrame(animate);else{rouletteRotation=finalRotation;callback()}}requestAnimationFrame(animate)}
+function announceWinner(winner){const total=roulette.participants.length*ROULETTE_COST,winnerPrize=Math.floor(total*.90),adminPart=Math.floor(total*.05),jackpotPart=total-winnerPrize-adminPart,w=users.find(u=>u.id===winner.id);if(w){w.balance+=winnerPrize;users=users.map(u=>u.id===w.id?w:u)}ledger.unshift({date:new Date().toLocaleString(),user:winner.name,type:"Ruleta - Premio",amount:winnerPrize,detail:`Ganador de la ronda. Participantes: ${roulette.participants.length}. Premio: ${winnerPrize} fichas.`});ledger.unshift({date:new Date().toLocaleString(),user:"SISTEMA",type:"Ruleta",amount:0,detail:`Fondo administración: ${adminPart} fichas. Fondo acumulado: ${jackpotPart} fichas.`});save();if(current&&!current.admin){const fresh=users.find(u=>u.id===current.id);if(fresh){current=fresh;enter()}}rouletteMessage.innerHTML=`🏆 <strong>¡GANADOR!</strong><br>🎉 ${escapeHtml(winner.name)}<br>🪙 Premio: ${winnerPrize} fichas`;setTimeout(startNewRoulette,7000)}
+function startNewRoulette(){roulette={start:Date.now(),end:Date.now()+ROULETTE_DURATION,participants:[],finished:false};rouletteRotation=0;saveRoulette();const canvas=document.getElementById("rouletteCanvas");if(canvas)canvas.style.transform="rotate(0deg)";drawRoulette();renderRouletteParticipants();if(document.getElementById("rouletteMessage"))rouletteMessage.textContent="🎡 Nueva ronda abierta. ¡Participa con 50 fichas!";updateRouletteTimer()}
+function escapeHtml(v){return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
+function renderAdmin(){if(!current?.admin)return;adminUsers.textContent=users.length;adminBalance.textContent=users.reduce((s,u)=>s+u.balance,0);adminTarget.innerHTML=users.map(u=>`<option value="${u.id}">${escapeHtml(u.name)} — ${u.id} — ${u.balance} fichas</option>`).join("");ledger.innerHTML=ledgerDataHtml()}
+function ledgerDataHtml(){return ledger.map(x=>`<tr><td>${escapeHtml(x.date)}</td><td>${escapeHtml(x.user)}</td><td>${escapeHtml(x.type)}</td><td class="${x.amount>=0?"ok":"bad"}">${x.amount>0?"+":""}${x.amount}</td><td>${escapeHtml(x.detail)}</td></tr>`).join("")||`<tr><td colspan="5" class="muted">Sin movimientos.</td></tr>`}
+loginTab.onclick=()=>{loginBox.classList.remove("hidden");regBox.classList.add("hidden");loginTab.className="primary";regTab.className="ghost"}
+regTab.onclick=()=>{regBox.classList.remove("hidden");loginBox.classList.add("hidden");regTab.className="primary";loginTab.className="ghost"}
+
+window.addEventListener("load",()=>{if(roulette&&Date.now()>=roulette.end){roulette=null;saveRoulette()}});
+</script>
+</body>
+</html>
