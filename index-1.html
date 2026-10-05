@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mercado El Dorado</title>
+<style>
+body{font-family:Arial,sans-serif;margin:0;background:#0f172a;color:#fff}
+header{background:#111827;padding:20px;text-align:center}
+h1{margin:0;color:#f5c451}
+.container{max-width:1100px;margin:auto;padding:15px}
+.card{background:#1e293b;padding:15px;border-radius:12px;margin:10px 0}
+input,select,button,textarea{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:none}
+button{background:#f5c451;color:#000;font-weight:bold;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:15px}
+.product{background:#1e293b;border-radius:12px;padding:10px}
+.product img{width:100%;height:180px;object-fit:cover;border-radius:8px}
+.small{font-size:12px;color:#cbd5e1}
+</style>
+</head>
+<body>
+<header>
+<h1>🏪 Mercado El Dorado</h1>
+<p>Compra y vende con facilidad</p>
+</header>
+
+<div class="container">
+<div class="card">
+<h2>Buscar productos</h2>
+<input id="search" placeholder="Buscar...">
+</div>
+
+<div class="card" id="loginBox">
+<h2>Administrador</h2>
+<input id="user" placeholder="Usuario">
+<input id="pass" type="password" placeholder="Contraseña">
+<button onclick="login()">Entrar</button>
+</div>
+
+<div class="card" id="adminPanel" style="display:none">
+<h2>Panel Administrador</h2>
+<input id="name" placeholder="Nombre del producto">
+<input id="price" placeholder="Precio">
+<input id="image" placeholder="URL de imagen">
+<textarea id="desc" placeholder="Descripción"></textarea>
+<button onclick="addProduct()">Agregar producto</button>
+</div>
+
+<h2>Productos</h2>
+<div class="grid" id="products"></div>
+</div>
+
+<script>
+const ADMIN_USER="admin";
+const ADMIN_PASS="Yordano4350@";
+
+let products=JSON.parse(localStorage.getItem("eldorado_products")||"[]");
+
+if(products.length===0){
+products=[
+{name:"iPhone",price:"500 USD",image:"https://via.placeholder.com/400x300",desc:"Producto de ejemplo"},
+{name:"Caña de Pescar",price:"80 USD",image:"https://via.placeholder.com/400x300",desc:"Producto de ejemplo"}
+];
+save();
+}
+
+function save(){
+localStorage.setItem("eldorado_products",JSON.stringify(products));
+render();
+}
+
+function login(){
+if(user.value===ADMIN_USER && pass.value===ADMIN_PASS){
+adminPanel.style.display="block";
+alert("Bienvenido administrador");
+}else{
+alert("Datos incorrectos");
+}
+}
+
+function addProduct(){
+products.unshift({
+name:name.value,
+price:price.value,
+image:image.value||"https://via.placeholder.com/400x300",
+desc:desc.value
+});
+save();
+name.value=price.value=image.value=desc.value="";
+}
+
+function del(i){
+products.splice(i,1);
+save();
+}
+
+function render(){
+const q=(search.value||"").toLowerCase();
+products.innerHTML="";
+window.products.forEach((p,i)=>{
+if(!p.name.toLowerCase().includes(q)) return;
+products.innerHTML+=`
+<div class="product">
+<img src="${p.image}">
+<h3>${p.name}</h3>
+<p><b>${p.price}</b></p>
+<p>${p.desc}</p>
+<a href="https://wa.me/58097787?text=Hola,%20quiero%20comprar%20${encodeURIComponent(p.name)}">
+<button>Comprar por WhatsApp</button>
+</a>
+<button onclick="del(${i})">Eliminar</button>
+</div>`;
+});
+}
+search.oninput=render;
+render();
+</script>
+</body>
+</html>
